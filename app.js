@@ -56,14 +56,22 @@ async function handleAuthState(user) {
   try {
     const admin=await firebaseApi.getDoc(firebaseApi.doc(firebaseApi.db, 'admins', user.uid));
     if (!admin.exists()) {
+      const loginError=document.getElementById('loginError');
+      loginError.textContent='This Firebase account is not an administrator. Add its UID to Firestore admins.';
+      loginError.classList.add('show');
       setSyncStatus('This Firebase account is not an administrator.', 'error');
       await firebaseApi.signOut(firebaseApi.auth);
       return;
     }
     adminUser=user;
     setSignedIn(user);
+    document.getElementById('loginError').classList.remove('show');
+    document.getElementById('login').close();
   } catch (error) {
     console.error(error);
+    const loginError=document.getElementById('loginError');
+    loginError.textContent='Unable to verify administrator access. Check Firestore rules.';
+    loginError.classList.add('show');
     setSyncStatus('Unable to verify administrator access.', 'error');
     await firebaseApi.signOut(firebaseApi.auth);
   }
@@ -121,8 +129,6 @@ async function signIn() {
   if (!firebaseApi) { error.textContent='Firebase is not connected.'; error.classList.add('show'); return; }
   try {
     await firebaseApi.signInWithEmailAndPassword(firebaseApi.auth, normalizedEmail(name), password);
-    document.getElementById('login').close();
-    error.classList.remove('show');
   } catch (reason) {
     console.error(reason);
     error.textContent='Invalid administrator credentials.';
