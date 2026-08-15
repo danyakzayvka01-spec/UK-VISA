@@ -66,13 +66,11 @@
   <div class="topline"></div>
   <header>
     <div class="brand"><span class="crest">C</span>COS Number Check</div>
-    <nav id="guestNav">
-      <button class="btn secondary" onclick="openModal('login')">Sign in</button>
-      <button class="btn" onclick="openModal('register')">Register</button>
-    </nav>
     <div id="profile" class="profile">
       <span class="profile-icon">A</span>
-      <span><strong id="profileName">Administrator</strong><small>Administrator</small></span>
+      <span><strong id="profileName">Account</strong><small id="profileRole">Account holder</small></span>
+      <button id="verifyAccount" class="btn secondary" type="button" onclick="sendVerification()" hidden>Send verification email</button>
+      <button id="refreshAccount" class="btn secondary" type="button" onclick="refreshAccount()" hidden>I've verified</button>
       <button class="btn secondary" onclick="logout()">Sign out</button>
     </div>
   </header>
@@ -99,17 +97,16 @@
   <aside id="adminbar" class="adminbar"><span>Administrator mode</span><button class="btn gold" onclick="openModal('add')">+ Add COS</button><button class="btn secondary" onclick="logout()">Sign out</button></aside>
   <dialog id="login">
     <form method="dialog" class="modal" onsubmit="signIn(); return false;">
-      <h2>Administrator sign in</h2><p>Use your Firebase administrator account.</p>
-      <label>Username or email<input id="loginName" required autocomplete="username"></label><label>Password<input id="loginPass" type="password" required autocomplete="current-password"></label>
-      <div id="loginError" class="error">Invalid administrator credentials.</div>
+      <h2>Account sign in</h2><p>Use the Firebase account assigned to this record.</p>
+      <label>Email<input id="loginName" required autocomplete="username"></label><label>Password<input id="loginPass" type="password" required autocomplete="current-password"></label>
+      <div id="loginError" class="error">Invalid email or password.</div>
       <footer><button class="btn secondary" value="cancel">Cancel</button><button class="btn" type="submit">Sign in</button></footer>
     </form>
   </dialog>
-  <dialog id="register"><form method="dialog" class="modal"><h2>Registration</h2><p>Registration is managed by the site administrator.</p><footer><button class="btn" value="close">Close</button></footer></form></dialog>
   <dialog id="add">
     <form method="dialog" class="modal" onsubmit="addRecord(); return false;">
-      <h2>Add COS record</h2><p>Records are shared through Firebase. Upload only a non-identity image you are authorised to handle. The image is kept in the administrator-only record.</p>
-      <label>COS number<input id="newCos" required maxlength="20" autocomplete="off"></label><label>Client name<input id="newName" required autocomplete="name"></label><label>Record image (JPG, PNG or WebP)<input id="newCertificate" type="file" accept="image/jpeg,image/png,image/webp" onchange="preview(this)" required></label>
+      <h2>Add COS record</h2><p>Records are shared through Firebase. Upload only a non-identity image you are authorised to handle. Add the client account email to give that account access to this record only.</p>
+      <label>COS number<input id="newCos" required maxlength="20" autocomplete="off"></label><label>Client name<input id="newName" required autocomplete="name"></label><label>Client account email (optional)<input id="newOwnerEmail" type="email" autocomplete="email"></label><label>Record image (JPG, PNG or WebP)<input id="newCertificate" type="file" accept="image/jpeg,image/png,image/webp" onchange="preview(this)" required></label>
       <img id="preview" class="upload-preview" alt="Record image preview"><footer><button class="btn secondary" type="button" onclick="document.getElementById('add').close()">Cancel</button><button id="saveRecord" class="btn" type="submit">Save record</button></footer>
     </form>
   </dialog>
