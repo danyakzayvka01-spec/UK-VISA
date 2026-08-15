@@ -5,13 +5,6 @@ let firebaseApi = null;
 let adminUser = null;
 let pendingObjectUrl = '';
 let privateRecordVisible = false;
-const builtInPublicRecords = Object.freeze({
-  C5S1A29561W: {
-    cos: 'C5S1A29561W',
-    name: 'MUSTAPA UULU MIRLANBEK',
-    status: 'Registered'
-  }
-});
 
 function openModal(id) { document.getElementById(id).showModal(); }
 function setSyncStatus(message, type='') {
@@ -62,6 +55,7 @@ function hidePrivateRecord() {
 function setSignedIn(user, isAdmin=false) {
   const signedIn=Boolean(user);
   const needsVerification=Boolean(user && !isAdmin && !user.emailVerified);
+  document.getElementById('guestNav').hidden=signedIn;
   document.getElementById('adminbar').classList.toggle('show', signedIn && isAdmin);
   document.getElementById('profile').classList.toggle('show', signedIn);
   document.getElementById('verifyAccount').hidden=!needsVerification;
@@ -87,6 +81,7 @@ async function handleAuthState(user) {
   if (isAdmin) adminUser=user;
   setSignedIn(user, isAdmin);
   document.getElementById('loginError').classList.remove('show');
+  document.getElementById('loginPass').value='';
   const loginDialog=document.getElementById('login');
   if (loginDialog.open) loginDialog.close();
   if (isAdmin) {
@@ -155,12 +150,6 @@ async function lookup() {
   const cos=document.getElementById('cos').value.trim().toUpperCase();
   document.getElementById('result').classList.remove('show');
   if (!cos) { setLookupError('Enter a COS number.'); return; }
-  const builtInRecord=builtInPublicRecords[cos];
-  if (builtInRecord) {
-    showPublicRecord(builtInRecord);
-    clearLookupError();
-    return;
-  }
   if (!firebaseApi) { setLookupError('Record storage is not ready.'); return; }
   try {
     const publicSnapshot=await firebaseApi.getDoc(firebaseApi.doc(firebaseApi.db, 'publicCosStatus', cos));
@@ -287,11 +276,48 @@ function prepareCertificateImage(file) {
     source.src=sourceUrl;
   });
 }
+async function createClientAccount() {
+  const login=document.getElementById('accountLogin').value.trim().toLowerCase();
+  const password=document.getElementById('accountPassword').value;
+  const error=document.getElementById('accountError');
+  const button=document.getElementById('createClient');
+  error.classList.remove('show');
+  if (!adminUser) { error.textContent='Administrator sign-in is required.'; error.classList.add('show'); return; }
+  if (!/^[a-z0-9._-]{3,32}$/.test(login)) { error.textContent='Use 3 to 32 letters, numbers, dots, underscores, or hyphens.'; error.classList.add('show'); return; }
+  if (password.length<12 || !/[a-z]/i.test(password) || !/\d/.test(password)) { error.textContent='Use at least 12 characters containing letters and numbers.'; error.classList.add('show'); return; }
+  if (/^\d{8}$/.test(password)) { error.textContent='Do not use a date of birth as the password.'; error.classList.add('show'); return; }
+  button.disabled=true;
+  button.textContent='Creating...';
+  try {
+    const idToken=await adminUser.getIdToken(true);
+    const response=await fetch('/api/create-client', {
+      method:'POST',
+      headers:{ 'Authorization':`Bearer ${idToken}`, 'Content-Type':'application/json' },
+      body:JSON.stringify({ username:login, password })
+    });
+    const payload=await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload.error || 'Unable to create the account.');
+    document.getElementById('accountPassword').value='';
+    document.getElementById('accountLogin').value='';
+    document.getElementById('account').close();
+    document.getElementById('newOwnerEmail').value=login;
+    setSyncStatus(`Client account “${login}” created. Add and assign its COS record.`, 'ready');
+    openModal('add');
+  } catch (reason) {
+    console.error(reason);
+    error.textContent=reason.message || 'Unable to create the client account.';
+    error.classList.add('show');
+  } finally {
+    button.disabled=false;
+    button.textContent='Create account';
+  }
+}
 async function addRecord() {
   const file=document.getElementById('newCertificate').files[0];
   const cos=document.getElementById('newCos').value.trim().toUpperCase();
   const name=document.getElementById('newName').value.trim();
-  const ownerEmail=document.getElementById('newOwnerEmail').value.trim().toLowerCase();
+  const ownerLogin=document.getElementById('newOwnerEmail').value.trim();
+  const ownerEmail=ownerLogin ? normalizedEmail(ownerLogin) : '';
   const button=document.getElementById('saveRecord');
   if (!/^[A-Z0-9-]{1,20}$/.test(cos)) { alert('Use 1 to 20 letters, numbers, or hyphens for the COS number.'); return; }
   if (ownerEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ownerEmail)) { alert('Enter a valid client account email.'); return; }

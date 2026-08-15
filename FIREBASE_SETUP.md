@@ -1,36 +1,64 @@
-# Firebase setup for COS Number Check
+# Secure Firebase setup for COS Number Check
 
-The supplied Firebase Web configuration is in `firebase-config.js`. It is a browser configuration, not a service-account key.
+The browser configuration is in `firebase-config.js`. It is safe to publish. Never place a service-account key, administrator password, or client password in that file or in `app.js`.
+
+The project uses Firebase Authentication and Cloud Firestore. Cloud Storage is not used: the browser compresses a private record image and saves it in the protected `cosRecords` document.
 
 ## 1. Enable Firebase services
 
 1. In Firebase Console, enable **Authentication > Sign-in method > Email/Password**.
-2. Create a Firebase Authentication user for the administrator. The site accepts a full email address. For a short username such as `trust`, it appends `@uk-visa-c64c8.firebaseapp.com`.
-3. Use a password with at least six characters. Do not use the previous four-character front-end password.
-4. Create **Cloud Firestore** in Production mode.
+2. Create **Cloud Firestore** in Production mode.
+3. In Firestore > Rules, publish the contents of `firestore.rules`.
 
-## 2. Publish the rules
+## 2. Create the administrator
 
-1. In Firestore > Rules, replace the rules with the contents of `firestore.rules` and publish.
-2. Cloud Storage is not required for this Firestore-only version of the site.
+In **Authentication > Users**, create this account manually:
 
-The configured administrator email is `trust@uk-visa-c64c8.firebaseapp.com`. Create this Firebase Authentication user and sign in with `trust` on the site.
+- Email: `trust@uk-visa-c64c8.firebaseapp.com`
+- Password: choose a unique administrator password of at least 16 characters.
 
-## 3. Create a client account
+Do not put this password in any project file. The site's **Sign in** button accepts either the full administrator email or the short login `trust`.
 
-1. In **Authentication > Users**, select **Add user** and create an Email/Password account for the client.
-2. Use an email address the client controls and a new password; do not use identity-document data as a password.
-3. Add the deployed Vercel domain in **Authentication > Settings > Authorized domains** if it is not already present.
-4. Sign in from the private address `https://your-site.example/?account=1`, use **Send verification email**, then select **I've verified** after following the email link.
-5. As the administrator, add or update the COS record and enter the exact same email in **Client account email**.
+## 3. Configure the protected Vercel API
 
-After verified sign-in, the client can retrieve only the COS record assigned to their account. The administrator still has access to all records. Existing records without a client account email must be saved again to give a client account access.
+Client accounts are created by `api/create-client.js`. This endpoint verifies the signed-in Firebase administrator before using the Firebase Admin SDK.
 
-## COS records and privacy
+1. In Firebase Console, open **Project settings > Service accounts** and generate a new private key.
+2. In the Vercel project, add these Environment Variables using values from the downloaded JSON file:
 
-- Any visitor who knows a COS number can retrieve only its registration status from `publicCosStatus`.
-- Client names and compressed record images stay in `cosRecords` and are visible only to the Firebase administrator or the account assigned to that record.
-- Upload only a non-identity image that you are authorised to store. Do not use this application for identity documents or passport images.
-- Record images are compressed in the browser before saving. If an image cannot be saved, use a smaller JPG, PNG, or WebP image.
+   - `FIREBASE_PROJECT_ID` = `uk-visa-c64c8`
+   - `FIREBASE_CLIENT_EMAIL` = the JSON `client_email` value
+   - `FIREBASE_PRIVATE_KEY` = the complete JSON `private_key` value
+   - `FIREBASE_ADMIN_EMAIL` = `trust@uk-visa-c64c8.firebaseapp.com`
+   - `FIREBASE_CLIENT_EMAIL_DOMAIN` = `uk-visa-c64c8.firebaseapp.com`
 
-Existing records in browser local storage are not migrated automatically. Sign in as the Firebase administrator and add each permitted test record again.
+3. Never upload the service-account JSON file to Vercel or commit it to source control.
+4. Deploy the complete folder. Vercel installs `firebase-admin` from `package.json` and exposes the endpoint at `/api/create-client`.
+5. Add the deployed domain in **Authentication > Settings > Authorized domains**.
+
+## 4. Create and assign a client
+
+1. Open the deployed site and select **Sign in**.
+2. Sign in as `trust` with the administrator password.
+3. Select **+ Client account** and enter a short login, for example `client01`.
+4. Generate a unique password of at least 12 characters containing letters and numbers. Do not use a date of birth, passport number, or COS number.
+5. After account creation, the **Add COS record** dialog opens automatically with the client login filled in.
+6. Enter the COS number, client name, and private record image, then save.
+7. Give the login and password to the client through a secure channel.
+
+Record details and images are intentionally not embedded in the deployable source files. Enter them through the authenticated administrator dialog after deployment.
+
+## 5. Client sign-in
+
+1. The client selects **Sign in** and enters the short login and password.
+2. The internal Firebase email is formed automatically from the short login.
+3. After authentication, Firestore permits access only to a `cosRecords` document whose `ownerEmail` matches that account.
+4. Searching for another client's COS number returns only the public registration status.
+
+## Data model and access
+
+- `publicCosStatus/{cos}` contains only the COS number and public status. Anyone may read one document when they know its exact COS number.
+- `cosRecords/{cos}` contains the name, owner email, and compressed private image. Only the administrator or the assigned verified account may read it.
+- `ownerRecords/{ownerEmail}/records/{cos}` links an authenticated client to its record.
+
+Firestore documents have a 1 MiB size limit. The browser makes several compression attempts and accepts an image only when its encoded size is suitable. Keep originals outside this application and establish a retention/deletion policy for sensitive documents.

@@ -58,6 +58,7 @@
     .adminbar.show { display:flex; gap:12px; align-items:center; }
     .upload-preview { display:none; width:100%; max-width:360px; height:180px; object-fit:contain; margin-top:10px; border:1px solid #ccd; background:#f7f9fc; }
     .upload-preview.show { display:block; }
+    .form-note { font-size:12px; color:#66758a; line-height:1.45; margin-top:7px; }
     footer { background:#061a33; color:#b7c7da; padding:22px clamp(20px,6vw,90px); font-size:13px; display:flex; justify-content:space-between; gap:20px; }
     @media(max-width:600px) { header { align-items:flex-start; flex-direction:column; } .fieldrow { flex-direction:column; } .result-grid { grid-template-columns:1fr; } .certificate-image { max-width:100%; } footer { flex-direction:column; } nav { width:100%; justify-content:flex-end; } }
   </style>
@@ -66,6 +67,7 @@
   <div class="topline"></div>
   <header>
     <div class="brand"><span class="crest">C</span>COS Number Check</div>
+    <nav id="guestNav"><button class="btn secondary" type="button" onclick="openModal('login')">Sign in</button></nav>
     <div id="profile" class="profile">
       <span class="profile-icon">A</span>
       <span><strong id="profileName">Account</strong><small id="profileRole">Account holder</small></span>
@@ -94,20 +96,30 @@
     </section>
   </main>
   <footer><span>Copyright 2026 COS Number Check</span><span>Designed in London</span></footer>
-  <aside id="adminbar" class="adminbar"><span>Administrator mode</span><button class="btn gold" onclick="openModal('add')">+ Add COS</button><button class="btn secondary" onclick="logout()">Sign out</button></aside>
+  <aside id="adminbar" class="adminbar"><span>Administrator mode</span><button class="btn gold" onclick="openModal('add')">+ Add COS</button><button class="btn secondary" onclick="openModal('account')">+ Client account</button><button class="btn secondary" onclick="logout()">Sign out</button></aside>
   <dialog id="login">
     <form method="dialog" class="modal" onsubmit="signIn(); return false;">
-      <h2>Account sign in</h2><p>Use the Firebase account assigned to this record.</p>
-      <label>Email<input id="loginName" required autocomplete="username"></label><label>Password<input id="loginPass" type="password" required autocomplete="current-password"></label>
+      <h2>Account sign in</h2><p>Enter your administrator email or the client login assigned to this record.</p>
+      <label>Email or client login<input id="loginName" required autocomplete="username"></label><label>Password<input id="loginPass" type="password" required autocomplete="current-password"></label>
       <div id="loginError" class="error">Invalid email or password.</div>
       <footer><button class="btn secondary" value="cancel">Cancel</button><button class="btn" type="submit">Sign in</button></footer>
     </form>
   </dialog>
   <dialog id="add">
     <form method="dialog" class="modal" onsubmit="addRecord(); return false;">
-      <h2>Add COS record</h2><p>Records are shared through Firebase. Upload only a non-identity image you are authorised to handle. Add the client account email to give that account access to this record only.</p>
-      <label>COS number<input id="newCos" required maxlength="20" autocomplete="off"></label><label>Client name<input id="newName" required autocomplete="name"></label><label>Client account email (optional)<input id="newOwnerEmail" type="email" autocomplete="email"></label><label>Record image (JPG, PNG or WebP)<input id="newCertificate" type="file" accept="image/jpeg,image/png,image/webp" onchange="preview(this)" required></label>
+      <h2>Add COS record</h2><p>The full record is visible only to the administrator and the assigned verified client account. Store personal documents only with the holder's consent and a lawful purpose.</p>
+      <label>COS number<input id="newCos" required maxlength="20" autocomplete="off"></label><label>Client name<input id="newName" required autocomplete="name"></label><label>Client login or email (optional)<input id="newOwnerEmail" autocomplete="username"></label><div class="form-note">For a short login such as “client01”, the site automatically creates the internal Firebase email.</div><label>Private record image (JPG, PNG or WebP)<input id="newCertificate" type="file" accept="image/jpeg,image/png,image/webp" onchange="preview(this)" required></label>
       <img id="preview" class="upload-preview" alt="Record image preview"><footer><button class="btn secondary" type="button" onclick="document.getElementById('add').close()">Cancel</button><button id="saveRecord" class="btn" type="submit">Save record</button></footer>
+    </form>
+  </dialog>
+  <dialog id="account">
+    <form method="dialog" class="modal" onsubmit="createClientAccount(); return false;">
+      <h2>Create client account</h2><p>Create the login first, then assign it when adding the COS record.</p>
+      <label>Client login<input id="accountLogin" required minlength="3" maxlength="32" pattern="[A-Za-z0-9._-]+" autocomplete="off"></label>
+      <label>Account password<input id="accountPassword" type="password" required minlength="12" autocomplete="new-password"></label>
+      <div class="form-note">Use at least 12 characters containing letters and numbers. Do not use a birth date, passport number, or COS number.</div>
+      <div id="accountError" class="error" role="alert"></div>
+      <footer><button class="btn secondary" type="button" onclick="document.getElementById('account').close()">Cancel</button><button id="createClient" class="btn" type="submit">Create account</button></footer>
     </form>
   </dialog>
   <script src="./firebase-config.js"></script>
