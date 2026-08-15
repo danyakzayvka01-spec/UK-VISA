@@ -5,6 +5,13 @@ let firebaseApi = null;
 let adminUser = null;
 let pendingObjectUrl = '';
 let privateRecordVisible = false;
+const builtInPublicRecords = Object.freeze({
+  C5S1A29561W: {
+    cos: 'C5S1A29561W',
+    name: 'MUSTAPA UULU MIRLANBEK',
+    status: 'Registered'
+  }
+});
 
 function openModal(id) { document.getElementById(id).showModal(); }
 function setSyncStatus(message, type='') {
@@ -25,7 +32,7 @@ function showPublicRecord(record) {
   certificate.hidden=true;
   certificate.removeAttribute('src');
   privateRecordVisible=false;
-  document.getElementById('recordName').textContent='Registration record';
+  document.getElementById('recordName').textContent=record.name || 'Registration record';
   document.getElementById('recordTag').textContent=(record.status || 'Registered').toUpperCase();
   document.getElementById('recordCos').textContent=record.cos;
   document.getElementById('recordStatus').textContent=record.status || 'Registered';
@@ -148,6 +155,12 @@ async function lookup() {
   const cos=document.getElementById('cos').value.trim().toUpperCase();
   document.getElementById('result').classList.remove('show');
   if (!cos) { setLookupError('Enter a COS number.'); return; }
+  const builtInRecord=builtInPublicRecords[cos];
+  if (builtInRecord) {
+    showPublicRecord(builtInRecord);
+    clearLookupError();
+    return;
+  }
   if (!firebaseApi) { setLookupError('Record storage is not ready.'); return; }
   try {
     const publicSnapshot=await firebaseApi.getDoc(firebaseApi.doc(firebaseApi.db, 'publicCosStatus', cos));
