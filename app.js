@@ -1,6 +1,7 @@
 const FIREBASE_VERSION = '12.17.1';
 const firebaseConfig = window.COS_FIREBASE_CONFIG;
 const defaultRecord = { cos:'E4G1F8A9B2', status:'Registered' };
+const adminEmail = `trust@${firebaseConfig.authDomain}`;
 let firebaseApi = null;
 let adminUser = null;
 let pendingObjectUrl = '';
@@ -53,28 +54,18 @@ function normalizedEmail(value) {
 async function handleAuthState(user) {
   adminUser=null;
   if (!user || !firebaseApi) { setSignedIn(null); return; }
-  try {
-    const admin=await firebaseApi.getDoc(firebaseApi.doc(firebaseApi.db, 'admins', user.uid));
-    if (!admin.exists()) {
-      const loginError=document.getElementById('loginError');
-      loginError.textContent='This Firebase account is not an administrator. Add its UID to Firestore admins.';
-      loginError.classList.add('show');
-      setSyncStatus('This Firebase account is not an administrator.', 'error');
-      await firebaseApi.signOut(firebaseApi.auth);
-      return;
-    }
-    adminUser=user;
-    setSignedIn(user);
-    document.getElementById('loginError').classList.remove('show');
-    document.getElementById('login').close();
-  } catch (error) {
-    console.error(error);
+  if (user.email !== adminEmail) {
     const loginError=document.getElementById('loginError');
-    loginError.textContent='Unable to verify administrator access. Check Firestore rules.';
+    loginError.textContent='This Firebase account is not the configured administrator.';
     loginError.classList.add('show');
-    setSyncStatus('Unable to verify administrator access.', 'error');
+    setSyncStatus('This Firebase account is not the configured administrator.', 'error');
     await firebaseApi.signOut(firebaseApi.auth);
+    return;
   }
+  adminUser=user;
+  setSignedIn(user);
+  document.getElementById('loginError').classList.remove('show');
+  document.getElementById('login').close();
 }
 async function initializeFirebase() {
   if (!firebaseConfig || !firebaseConfig.apiKey || !firebaseConfig.projectId) { setSyncStatus('Firebase configuration is missing.', 'error'); return; }
