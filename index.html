@@ -36,9 +36,9 @@
     .sync-status.ready { color:var(--green); }
     .result { display:none; max-width:690px; background:#fff; margin-top:22px; padding:24px; box-shadow:0 10px 30px #020b1870; color:var(--ink); }
     .result.show { display:block; }
-    .result-grid { display:grid; grid-template-columns:130px 1fr; gap:22px; align-items:start; }
+    .result-grid { display:grid; grid-template-columns:minmax(190px,260px) 1fr; gap:22px; align-items:start; }
     .result-grid.public { grid-template-columns:1fr; }
-    .photo { width:130px; height:165px; border:1px solid #cbd4df; object-fit:cover; background:#edf2f7; }
+    .certificate-image { width:100%; max-width:260px; min-height:165px; max-height:210px; border:1px solid #cbd4df; object-fit:contain; background:#f7f9fc; }
     .tag { background:#e2f1e7; color:var(--green); padding:6px 9px; font-weight:800; font-size:12px; border-radius:2px; display:inline-block; }
     .details h2 { margin:12px 0 4px; font-family:Georgia,serif; }
     .details dl { display:grid; grid-template-columns:115px 1fr; gap:9px; margin:17px 0 0; font-size:14px; }
@@ -56,10 +56,10 @@
     .modal footer { display:flex; justify-content:flex-end; gap:10px; margin-top:24px; }
     .adminbar { display:none; position:fixed; bottom:20px; right:20px; background:var(--navy); padding:12px; color:#fff; box-shadow:0 8px 30px #0007; }
     .adminbar.show { display:flex; gap:12px; align-items:center; }
-    .upload-preview { display:none; width:70px; height:90px; object-fit:cover; margin-top:10px; border:1px solid #ccd; }
+    .upload-preview { display:none; width:100%; max-width:360px; height:180px; object-fit:contain; margin-top:10px; border:1px solid #ccd; background:#f7f9fc; }
     .upload-preview.show { display:block; }
     footer { background:#061a33; color:#b7c7da; padding:22px clamp(20px,6vw,90px); font-size:13px; display:flex; justify-content:space-between; gap:20px; }
-    @media(max-width:600px) { header { align-items:flex-start; flex-direction:column; } .fieldrow { flex-direction:column; } .result-grid { grid-template-columns:1fr; } .photo { width:105px; height:135px; } footer { flex-direction:column; } nav { width:100%; justify-content:flex-end; } }
+    @media(max-width:600px) { header { align-items:flex-start; flex-direction:column; } .fieldrow { flex-direction:column; } .result-grid { grid-template-columns:1fr; } .certificate-image { max-width:100%; } footer { flex-direction:column; } nav { width:100%; justify-content:flex-end; } }
   </style>
 </head>
 <body>
@@ -80,16 +80,16 @@
     <section class="hero">
       <div class="eyebrow">City of London - Verification portal</div>
       <h1>COS Number Check</h1>
-      <p>Enter your Certificate of Sponsorship number to view the application registration status.</p>
+      <p>Enter a COS number to view the registration status.</p>
       <div class="lookup">
         <label for="cos">COS number</label>
-        <div class="fieldrow"><input id="cos" placeholder="COS number" maxlength="10" autocomplete="off"><button class="btn" onclick="lookup()">Check status</button></div>
+        <div class="fieldrow"><input id="cos" maxlength="20" autocomplete="off"><button class="btn" onclick="lookup()">Check status</button></div>
         <div id="error" class="error" role="alert">No record found.</div>
         <div id="syncStatus" class="sync-status" aria-live="polite">Connecting to record storage...</div>
       </div>
       <article id="result" class="result" aria-live="polite">
         <div id="resultGrid" class="result-grid">
-          <img id="recordPhoto" class="photo" alt="Record photo" hidden>
+          <img id="recordCertificate" class="certificate-image" alt="Record image" hidden>
           <div class="details"><span id="recordTag" class="tag">REGISTERED</span><h2 id="recordName">Registration record</h2><dl><dt>COS number</dt><dd id="recordCos"></dd><dt>Status</dt><dd id="recordStatus">Registered</dd></dl></div>
         </div>
       </article>
@@ -108,9 +108,9 @@
   <dialog id="register"><form method="dialog" class="modal"><h2>Registration</h2><p>Registration is managed by the site administrator.</p><footer><button class="btn" value="close">Close</button></footer></form></dialog>
   <dialog id="add">
     <form method="dialog" class="modal" onsubmit="addRecord(); return false;">
-      <h2>Add record</h2><p>Records are shared through Firebase. A small test avatar is stored with the private record; do not add real passport photographs or identifiers.</p>
-      <label>COS number<input id="newCos" required maxlength="10" autocomplete="off"></label><label>Full name<input id="newName" required></label><label>Photo<input id="newPhoto" type="file" accept="image/*" onchange="preview(this)" required></label>
-      <img id="preview" class="upload-preview" alt="Preview"><footer><button class="btn secondary" type="button" onclick="document.getElementById('add').close()">Cancel</button><button id="saveRecord" class="btn" type="submit">Save record</button></footer>
+      <h2>Add COS record</h2><p>Records are shared through Firebase. Upload only a non-identity image you are authorised to handle. The image is kept in the administrator-only record.</p>
+      <label>COS number<input id="newCos" required maxlength="20" autocomplete="off"></label><label>Client name<input id="newName" required autocomplete="name"></label><label>Record image (JPG, PNG or WebP)<input id="newCertificate" type="file" accept="image/jpeg,image/png,image/webp" onchange="preview(this)" required></label>
+      <img id="preview" class="upload-preview" alt="Record image preview"><footer><button class="btn secondary" type="button" onclick="document.getElementById('add').close()">Cancel</button><button id="saveRecord" class="btn" type="submit">Save record</button></footer>
     </form>
   </dialog>
   <script src="./firebase-config.js"></script>

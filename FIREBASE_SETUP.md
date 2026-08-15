@@ -9,26 +9,18 @@ The supplied Firebase Web configuration is in `firebase-config.js`. It is a brow
 3. Use a password with at least six characters. Do not use the previous four-character front-end password.
 4. Create **Cloud Firestore** in Production mode.
 
-## 2. Create the administrator record
-
-1. Copy the administrator user's **UID** from Authentication > Users.
-2. In Firestore, create this document manually:
-
-   Collection: `admins`
-
-   Document ID: the Firebase Authentication UID
-
-   Field: `role` (string) = `admin`
-
-## 3. Publish the rules
+## 2. Publish the rules
 
 1. In Firestore > Rules, replace the rules with the contents of `firestore.rules` and publish.
 2. Cloud Storage is not required for this Firestore-only version of the site.
 
-## What is shared
+The configured administrator email is `trust@uk-visa-c64c8.firebaseapp.com`. Create this Firebase Authentication user and sign in with `trust` on the site.
 
-- Any visitor who knows a COS number can retrieve only the registration status from `publicCosStatus`.
-- Names and compressed test avatars stay in `cosRecords` and are visible only to the Firebase administrator.
-- Do not use this application for real documents, identity records, or passport images.
+## COS records and privacy
+
+- Any visitor who knows a COS number can retrieve only its registration status from `publicCosStatus`.
+- Client names and compressed record images stay in `cosRecords` and are visible only to the Firebase administrator.
+- Upload only a non-identity image that you are authorised to store. Do not use this application for identity documents or passport images.
+- Record images are compressed in the browser before saving. If an image cannot be saved, use a smaller JPG, PNG, or WebP image.
 
 Existing records in browser local storage are not migrated automatically. Sign in as the Firebase administrator and add each permitted test record again.

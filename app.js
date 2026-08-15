@@ -1,7 +1,6 @@
 const FIREBASE_VERSION = '12.17.1';
-const firebaseConfig = window.COS_FIREBASE_CONFIG;
-const defaultRecord = { cos:'E4G1F8A9B2', status:'Registered' };
-const adminEmail = `trust@${firebaseConfig.authDomain}`;
+const firebaseConfig = window.COS_FIREBASE_CONFIG || {};
+const adminEmail = firebaseConfig.authDomain ? `trust@${firebaseConfig.authDomain}` : '';
 let firebaseApi = null;
 let adminUser = null;
 let pendingObjectUrl = '';
@@ -20,9 +19,9 @@ function setLookupError(message) {
 function clearLookupError() { document.getElementById('error').classList.remove('show'); }
 function showPublicRecord(record) {
   const grid=document.getElementById('resultGrid');
-  const photo=document.getElementById('recordPhoto');
+  const certificate=document.getElementById('recordCertificate');
   grid.classList.add('public');
-  photo.hidden=true;
+  certificate.hidden=true;
   document.getElementById('recordName').textContent='Registration record';
   document.getElementById('recordTag').textContent=(record.status || 'Registered').toUpperCase();
   document.getElementById('recordCos').textContent=record.cos;
@@ -31,13 +30,14 @@ function showPublicRecord(record) {
 }
 function showAdminRecord(record) {
   const grid=document.getElementById('resultGrid');
-  const photo=document.getElementById('recordPhoto');
+  const certificate=document.getElementById('recordCertificate');
   grid.classList.remove('public');
   document.getElementById('recordName').textContent=record.name || 'Unnamed record';
   document.getElementById('recordTag').textContent=(record.status || 'Registered').toUpperCase();
   document.getElementById('recordCos').textContent=record.cos;
   document.getElementById('recordStatus').textContent=record.status || 'Registered';
-  if (typeof record.photoData==='string' && record.photoData.startsWith('data:image/')) { photo.src=record.photoData; photo.hidden=false; } else { photo.hidden=true; }
+  const certificateImage=record.certificateImageData || record.photoData;
+  if (typeof certificateImage==='string' && certificateImage.startsWith('data:image/')) { certificate.src=certificateImage; certificate.hidden=false; } else { certificate.hidden=true; }
   document.getElementById('result').classList.add('show');
 }
 function setSignedIn(user) {
@@ -96,7 +96,6 @@ async function lookup() {
   try {
     const publicSnapshot=await firebaseApi.getDoc(firebaseApi.doc(firebaseApi.db, 'publicCosStatus', cos));
     if (!publicSnapshot.exists()) {
-      if (cos===defaultRecord.cos) { showPublicRecord(defaultRecord); clearLookupError(); return; }
       setLookupError('No record found.');
       return;
     }
@@ -140,43 +139,66 @@ function preview(input) {
   image.src=pendingObjectUrl;
   image.classList.add('show');
 }
-function preparePhoto(file) {
+function dataUrlByteLength(dataUrl) {
+  const comma=dataUrl.indexOf(',');
+  return comma === -1 ? 0 : Math.ceil((dataUrl.length-comma-1)*3/4);
+}
+function prepareCertificateImage(file) {
   return new Promise((resolve, reject) => {
     const sourceUrl=URL.createObjectURL(file), source=new Image();
     source.onload=() => {
-      const maxSide=320, scale=Math.min(1, maxSide/Math.max(source.width, source.height)), canvas=document.createElement('canvas');
-      canvas.width=Math.max(1, Math.round(source.width*scale));
-      canvas.height=Math.max(1, Math.round(source.height*scale));
-      canvas.getContext('2d').drawImage(source, 0, 0, canvas.width, canvas.height);
-      URL.revokeObjectURL(sourceUrl);
-      const dataUrl=canvas.toDataURL('image/jpeg', .72);
-      const sizeInBytes=Math.ceil((dataUrl.length-dataUrl.indexOf(',')-1)*3/4);
-      if (sizeInBytes>650*1024) { reject(new Error('Image is too large')); return; }
-      resolve(dataUrl);
+      try {
+        const sourceWidth=source.naturalWidth || source.width;
+        const sourceHeight=source.naturalHeight || source.height;
+        const attempts=[
+          { maxSide:1280, quality:.82 },
+          { maxSide:1120, quality:.78 },
+          { maxSide:960, quality:.75 },
+          { maxSide:820, quality:.72 },
+          { maxSide:700, quality:.70 }
+        ];
+        for (const attempt of attempts) {
+          const scale=Math.min(1, attempt.maxSide/Math.max(sourceWidth, sourceHeight));
+          const canvas=document.createElement('canvas');
+          canvas.width=Math.max(1, Math.round(sourceWidth*scale));
+          canvas.height=Math.max(1, Math.round(sourceHeight*scale));
+          const context=canvas.getContext('2d');
+          context.fillStyle='#ffffff';
+          context.fillRect(0, 0, canvas.width, canvas.height);
+          context.drawImage(source, 0, 0, canvas.width, canvas.height);
+          const dataUrl=canvas.toDataURL('image/jpeg', attempt.quality);
+          if (dataUrlByteLength(dataUrl)<=620*1024) { resolve(dataUrl); return; }
+        }
+        reject(new Error('Record image is too large after compression.'));
+      } catch (error) {
+        reject(error);
+      } finally {
+        URL.revokeObjectURL(sourceUrl);
+      }
     };
-    source.onerror=() => { URL.revokeObjectURL(sourceUrl); reject(new Error('Image processing failed')); };
+    source.onerror=() => { URL.revokeObjectURL(sourceUrl); reject(new Error('Record image processing failed.')); };
     source.src=sourceUrl;
   });
 }
 async function addRecord() {
-  const file=document.getElementById('newPhoto').files[0];
+  const file=document.getElementById('newCertificate').files[0];
   const cos=document.getElementById('newCos').value.trim().toUpperCase();
   const name=document.getElementById('newName').value.trim();
   const button=document.getElementById('saveRecord');
-  if (!/^[A-Z0-9]{1,10}$/.test(cos)) { alert('Use up to 10 letters and numbers for the COS number.'); return; }
-  if (!file || !firebaseApi || !adminUser) { alert('Sign in as an administrator and select a photo before saving.'); return; }
+  if (!/^[A-Z0-9-]{1,20}$/.test(cos)) { alert('Use 1 to 20 letters, numbers, or hyphens for the COS number.'); return; }
+  if (!file || !firebaseApi || !adminUser) { alert('Sign in as an administrator and select a record image before saving.'); return; }
   button.disabled=true;
   button.textContent='Saving...';
   try {
-    const compressedPhoto=await preparePhoto(file);
+    const certificateImageData=await prepareCertificateImage(file);
     const batch=firebaseApi.writeBatch(firebaseApi.db);
-    batch.set(firebaseApi.doc(firebaseApi.db, 'cosRecords', cos), { cos, name, status:'Registered', photoData:compressedPhoto, updatedAt:firebaseApi.serverTimestamp() });
+    batch.set(firebaseApi.doc(firebaseApi.db, 'cosRecords', cos), { cos, name, status:'Registered', certificateImageData, updatedAt:firebaseApi.serverTimestamp() });
     batch.set(firebaseApi.doc(firebaseApi.db, 'publicCosStatus', cos), { cos, status:'Registered', updatedAt:firebaseApi.serverTimestamp() });
     await batch.commit();
     document.getElementById('add').close();
     document.getElementById('newCos').value='';
     document.getElementById('newName').value='';
-    document.getElementById('newPhoto').value='';
+    document.getElementById('newCertificate').value='';
     document.getElementById('preview').removeAttribute('src');
     document.getElementById('preview').classList.remove('show');
     if (pendingObjectUrl) URL.revokeObjectURL(pendingObjectUrl);
@@ -185,7 +207,7 @@ async function addRecord() {
     await lookup();
   } catch (error) {
     console.error(error);
-    alert('Unable to save the record. Check Firebase Authentication and Firestore rules, or select a smaller photo.');
+    alert('Unable to save the record. Check Firebase Authentication and Firestore rules, or select a smaller image.');
   } finally {
     button.disabled=false;
     button.textContent='Save record';
