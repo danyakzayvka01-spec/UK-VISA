@@ -17,6 +17,7 @@
     .btn { border:1px solid transparent; border-radius:3px; padding:11px 18px; background:var(--red); color:#fff; font-weight:700; cursor:pointer; font-size:14px; }
     .btn.secondary { background:transparent; border-color:#91a3ba; }
     .btn.gold { background:var(--gold); color:#07172e; }
+    .btn.danger { background:#8f1026; }
     .btn:disabled { cursor:wait; opacity:.68; }
     .btn:hover:not(:disabled) { filter:brightness(1.1); }
     .profile { display:none; align-items:center; gap:10px; font-size:14px; }
@@ -48,6 +49,7 @@
     .error { display:none; color:#a3152e; font-size:14px; margin-top:13px; }
     .error.show { display:block; }
     dialog { border:0; padding:0; border-radius:5px; box-shadow:0 20px 70px #0009; width:min(520px,calc(100% - 32px)); }
+    dialog.wide { width:min(980px,calc(100% - 32px)); }
     dialog::backdrop { background:#061a33bb; }
     .modal { padding:28px; }
     .modal h2 { font-family:Georgia,serif; margin:0 0 8px; }
@@ -60,8 +62,22 @@
     .upload-preview { display:none; width:100%; max-width:360px; height:180px; object-fit:contain; margin-top:10px; border:1px solid #ccd; background:#f7f9fc; }
     .upload-preview.show { display:block; }
     .form-note { font-size:12px; color:#66758a; line-height:1.45; margin-top:7px; }
+    .records-toolbar { display:flex; justify-content:space-between; gap:20px; align-items:flex-start; }
+    .records-toolbar h2 { margin-bottom:5px; }
+    .record-list { display:grid; gap:12px; max-height:min(64vh,650px); overflow:auto; margin-top:20px; padding-right:4px; }
+    .record-card { border:1px solid #cbd4df; background:#f8fafc; padding:14px; display:grid; grid-template-columns:120px minmax(0,1fr) auto; gap:16px; align-items:center; }
+    .record-thumb { width:120px; height:86px; object-fit:contain; background:#fff; border:1px solid #d5dde7; }
+    .record-thumb.placeholder { display:grid; place-items:center; color:#748399; font-size:12px; text-align:center; }
+    .record-meta h3 { font-family:Georgia,serif; margin:0 0 8px; font-size:20px; }
+    .record-meta dl { display:grid; grid-template-columns:72px minmax(0,1fr); gap:5px 10px; margin:0; font-size:13px; }
+    .record-meta dt { color:#66758a; }
+    .record-meta dd { margin:0; font-weight:700; overflow-wrap:anywhere; }
+    .record-actions { display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+    .records-toolbar .btn.secondary, .record-actions .btn.secondary { background:#fff; border-color:#7f90a5; color:var(--navy); }
+    .empty-state { border:1px dashed #aebbc9; padding:35px 20px; text-align:center; color:#66758a; background:#f8fafc; }
+    .edit-record-image { width:100%; height:150px; object-fit:contain; border:1px solid #ccd5e0; background:#f7f9fc; margin-top:12px; }
     footer { background:#061a33; color:#b7c7da; padding:22px clamp(20px,6vw,90px); font-size:13px; display:flex; justify-content:space-between; gap:20px; }
-    @media(max-width:600px) { header { align-items:flex-start; flex-direction:column; } .fieldrow { flex-direction:column; } .result-grid { grid-template-columns:1fr; } .certificate-image { max-width:100%; } footer { flex-direction:column; } nav { width:100%; justify-content:flex-end; } }
+    @media(max-width:600px) { header { align-items:flex-start; flex-direction:column; } .fieldrow { flex-direction:column; } .result-grid { grid-template-columns:1fr; } .certificate-image { max-width:100%; } footer { flex-direction:column; } nav { width:100%; justify-content:flex-end; } .record-card { grid-template-columns:90px minmax(0,1fr); } .record-thumb { width:90px; height:72px; } .record-actions { grid-column:1/-1; justify-content:flex-start; } }
   </style>
 </head>
 <body>
@@ -97,7 +113,7 @@
     </section>
   </main>
   <footer><span>Copyright 2026 COS Number Check</span><span>Designed in London</span></footer>
-  <aside id="adminbar" class="adminbar"><span>Administrator mode</span><button class="btn gold" onclick="openModal('add')">+ Add COS</button><button class="btn secondary" onclick="openModal('account')">+ Client account</button><button class="btn secondary" onclick="logout()">Sign out</button></aside>
+  <aside id="adminbar" class="adminbar"><span>Administrator mode</span><button class="btn gold" onclick="openRecordList()">COS records</button><button class="btn secondary" onclick="openModal('account')">+ Client account</button><button class="btn secondary" onclick="logout()">Sign out</button></aside>
   <dialog id="login">
     <form method="dialog" class="modal" onsubmit="signIn(); return false;">
       <h2>Account sign in</h2><p>Enter your administrator email or the client login assigned to this record.</p>
@@ -121,6 +137,25 @@
       <div class="form-note">Use at least 12 characters containing letters and numbers. Do not use a birth date, passport number, or COS number.</div>
       <div id="accountError" class="error" role="alert"></div>
       <footer><button class="btn secondary" type="button" onclick="document.getElementById('account').close()">Cancel</button><button id="createClient" class="btn" type="submit">Create account</button></footer>
+    </form>
+  </dialog>
+  <dialog id="records" class="wide">
+    <section class="modal">
+      <div class="records-toolbar"><div><h2>COS records</h2><p>Administrator-only list of private registration records.</p></div><button class="btn secondary" type="button" onclick="document.getElementById('records').close()">Close</button></div>
+      <div id="recordsError" class="error" role="alert"></div>
+      <div id="recordList" class="record-list" aria-live="polite"></div>
+    </section>
+  </dialog>
+  <dialog id="editRecord">
+    <form method="dialog" class="modal" onsubmit="saveEditedRecord(); return false;">
+      <h2>Edit COS record</h2><p>Changing the COS number or client account also updates its public status and private account link.</p>
+      <input id="editOriginalCos" type="hidden">
+      <label>COS number<input id="editCos" required maxlength="20" autocomplete="off"></label>
+      <label>Client name<input id="editName" required autocomplete="name"></label>
+      <label>Client login or email<input id="editOwnerEmail" autocomplete="username"></label>
+      <img id="editRecordImage" class="edit-record-image" alt="Current private record image">
+      <div id="editRecordError" class="error" role="alert"></div>
+      <footer><button class="btn secondary" type="button" onclick="document.getElementById('editRecord').close()">Cancel</button><button id="updateRecord" class="btn" type="submit">Save changes</button></footer>
     </form>
   </dialog>
   <script src="./firebase-config.js"></script>

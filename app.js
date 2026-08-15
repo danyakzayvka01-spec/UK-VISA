@@ -5,6 +5,7 @@ let firebaseApi = null;
 let adminUser = null;
 let pendingObjectUrl = '';
 let privateRecordVisible = false;
+const adminRecordsCache = new Map();
 
 function openModal(id) { document.getElementById(id).showModal(); }
 function setSyncStatus(message, type='') {
@@ -70,15 +71,30 @@ function normalizedEmail(value) {
   const username=value.trim().toLowerCase();
   return username.includes('@') ? username : `${username}@${firebaseConfig.authDomain}`;
 }
+function ownerLoginLabel(email='') {
+  const normalized=String(email).trim().toLowerCase();
+  const internalSuffix=`@${firebaseConfig.authDomain}`;
+  return normalized.endsWith(internalSuffix) ? normalized.slice(0, -internalSuffix.length) : normalized;
+}
+function clearAdminRecordState() {
+  adminRecordsCache.clear();
+  document.getElementById('recordList').replaceChildren();
+  for (const id of ['records','editRecord','add','account']) {
+    const dialog=document.getElementById(id);
+    if (dialog.open) dialog.close();
+  }
+}
 async function handleAuthState(user) {
   adminUser=null;
   if (!user || !firebaseApi) {
+    clearAdminRecordState();
     hidePrivateRecord();
     setSignedIn(null);
     return;
   }
   const isAdmin=user.email === adminEmail;
   if (isAdmin) adminUser=user;
+  if (!isAdmin) clearAdminRecordState();
   setSignedIn(user, isAdmin);
   document.getElementById('loginError').classList.remove('show');
   document.getElementById('loginPass').value='';
@@ -223,6 +239,7 @@ async function refreshAccount() {
 async function logout() {
   if (firebaseApi) await firebaseApi.signOut(firebaseApi.auth);
   adminUser=null;
+  clearAdminRecordState();
   hidePrivateRecord();
   setSignedIn(null);
 }
@@ -275,6 +292,199 @@ function prepareCertificateImage(file) {
     source.onerror=() => { URL.revokeObjectURL(sourceUrl); reject(new Error('Record image processing failed.')); };
     source.src=sourceUrl;
   });
+}
+function appendRecordDetail(list, label, value) {
+  const term=document.createElement('dt');
+  const description=document.createElement('dd');
+  term.textContent=label;
+  description.textContent=value;
+  list.append(term, description);
+}
+function sortedAdminRecords() {
+  return [...adminRecordsCache.values()].sort((left, right) => left.cos.localeCompare(right.cos));
+}
+function renderAdminRecords() {
+  const list=document.getElementById('recordList');
+  list.replaceChildren();
+  const records=sortedAdminRecords();
+  if (!records.length) {
+    const empty=document.createElement('div');
+    empty.className='empty-state';
+    empty.textContent='No COS records have been added yet.';
+    list.append(empty);
+    return;
+  }
+  for (const record of records) {
+    const card=document.createElement('article');
+    card.className='record-card';
+    const imageData=record.certificateImageData || record.photoData;
+    if (typeof imageData==='string' && imageData.startsWith('data:image/')) {
+      const image=document.createElement('img');
+      image.className='record-thumb';
+      image.alt='Private record image';
+      image.src=imageData;
+      card.append(image);
+    } else {
+      const placeholder=document.createElement('div');
+      placeholder.className='record-thumb placeholder';
+      placeholder.textContent='No image';
+      card.append(placeholder);
+    }
+    const meta=document.createElement('div');
+    meta.className='record-meta';
+    const heading=document.createElement('h3');
+    heading.textContent=record.name || 'Unnamed record';
+    const details=document.createElement('dl');
+    appendRecordDetail(details, 'COS', record.cos);
+    appendRecordDetail(details, 'Account', ownerLoginLabel(record.ownerEmail) || 'Not assigned');
+    appendRecordDetail(details, 'Status', record.status || 'Registered');
+    meta.append(heading, details);
+    const actions=document.createElement('div');
+    actions.className='record-actions';
+    const editButton=document.createElement('button');
+    editButton.className='btn secondary';
+    editButton.type='button';
+    editButton.textContent='Edit';
+    editButton.addEventListener('click', () => openEditRecord(record.cos));
+    const deleteButton=document.createElement('button');
+    deleteButton.className='btn danger';
+    deleteButton.type='button';
+    deleteButton.textContent='Delete';
+    deleteButton.addEventListener('click', () => deleteAdminRecord(record.cos));
+    actions.append(editButton, deleteButton);
+    card.append(meta, actions);
+    list.append(card);
+  }
+}
+async function loadAdminRecords() {
+  const error=document.getElementById('recordsError');
+  const list=document.getElementById('recordList');
+  error.classList.remove('show');
+  list.replaceChildren();
+  const loading=document.createElement('div');
+  loading.className='empty-state';
+  loading.textContent='Loading COS records...';
+  list.append(loading);
+  if (!firebaseApi || !adminUser) {
+    loading.textContent='Administrator sign-in is required.';
+    return;
+  }
+  try {
+    const snapshot=await firebaseApi.getDocs(firebaseApi.collection(firebaseApi.db, 'cosRecords'));
+    adminRecordsCache.clear();
+    for (const recordDocument of snapshot.docs) {
+      const record={ ...recordDocument.data(), cos:recordDocument.id };
+      adminRecordsCache.set(record.cos, record);
+    }
+    renderAdminRecords();
+  } catch (reason) {
+    console.error(reason);
+    list.replaceChildren();
+    error.textContent='Unable to load COS records. Check administrator access and Firestore rules.';
+    error.classList.add('show');
+  }
+}
+function openRecordList() {
+  if (!adminUser) { setSyncStatus('Administrator sign-in is required.', 'error'); return; }
+  openModal('records');
+  loadAdminRecords();
+}
+function openEditRecord(cos) {
+  const record=adminRecordsCache.get(cos);
+  if (!record) return;
+  document.getElementById('editOriginalCos').value=record.cos;
+  document.getElementById('editCos').value=record.cos;
+  document.getElementById('editName').value=record.name || '';
+  document.getElementById('editOwnerEmail').value=ownerLoginLabel(record.ownerEmail);
+  document.getElementById('editRecordError').classList.remove('show');
+  const image=document.getElementById('editRecordImage');
+  const imageData=record.certificateImageData || record.photoData;
+  if (typeof imageData==='string' && imageData.startsWith('data:image/')) {
+    image.src=imageData;
+    image.hidden=false;
+  } else {
+    image.removeAttribute('src');
+    image.hidden=true;
+  }
+  openModal('editRecord');
+}
+async function saveEditedRecord() {
+  const originalCos=document.getElementById('editOriginalCos').value;
+  const newCos=document.getElementById('editCos').value.trim().toUpperCase();
+  const name=document.getElementById('editName').value.trim();
+  const ownerLogin=document.getElementById('editOwnerEmail').value.trim();
+  const ownerEmail=ownerLogin ? normalizedEmail(ownerLogin) : '';
+  const record=adminRecordsCache.get(originalCos);
+  const error=document.getElementById('editRecordError');
+  const button=document.getElementById('updateRecord');
+  error.classList.remove('show');
+  if (!firebaseApi || !adminUser || !record) { error.textContent='Administrator record data is unavailable.'; error.classList.add('show'); return; }
+  if (!/^[A-Z0-9-]{1,20}$/.test(newCos)) { error.textContent='Use 1 to 20 letters, numbers, or hyphens for the COS number.'; error.classList.add('show'); return; }
+  if (!name) { error.textContent='Enter the client name.'; error.classList.add('show'); return; }
+  if (ownerEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ownerEmail)) { error.textContent='Enter a valid client login or email.'; error.classList.add('show'); return; }
+  button.disabled=true;
+  button.textContent='Saving...';
+  try {
+    if (newCos!==originalCos) {
+      const targetRecord=await firebaseApi.getDoc(firebaseApi.doc(firebaseApi.db, 'cosRecords', newCos));
+      if (targetRecord.exists()) throw new Error('Another record already uses this COS number.');
+    }
+    const previousOwnerEmail=typeof record.ownerEmail==='string' ? record.ownerEmail.trim().toLowerCase() : '';
+    const updatedRecord={ ...record, cos:newCos, name, status:record.status || 'Registered', updatedAt:firebaseApi.serverTimestamp() };
+    if (ownerEmail) updatedRecord.ownerEmail=ownerEmail; else delete updatedRecord.ownerEmail;
+    const batch=firebaseApi.writeBatch(firebaseApi.db);
+    const originalRecordReference=firebaseApi.doc(firebaseApi.db, 'cosRecords', originalCos);
+    const targetRecordReference=firebaseApi.doc(firebaseApi.db, 'cosRecords', newCos);
+    batch.set(targetRecordReference, updatedRecord);
+    if (newCos!==originalCos) batch.delete(originalRecordReference);
+    batch.set(firebaseApi.doc(firebaseApi.db, 'publicCosStatus', newCos), { cos:newCos, status:updatedRecord.status, updatedAt:firebaseApi.serverTimestamp() });
+    if (newCos!==originalCos) batch.delete(firebaseApi.doc(firebaseApi.db, 'publicCosStatus', originalCos));
+    const ownerLinkUnchanged=previousOwnerEmail===ownerEmail && originalCos===newCos;
+    if (previousOwnerEmail && !ownerLinkUnchanged) batch.delete(firebaseApi.doc(firebaseApi.db, 'ownerRecords', previousOwnerEmail, 'records', originalCos));
+    if (ownerEmail) batch.set(firebaseApi.doc(firebaseApi.db, 'ownerRecords', ownerEmail, 'records', newCos), { cos:newCos, updatedAt:firebaseApi.serverTimestamp() });
+    await batch.commit();
+    adminRecordsCache.delete(originalCos);
+    adminRecordsCache.set(newCos, updatedRecord);
+    document.getElementById('editRecord').close();
+    renderAdminRecords();
+    if (document.getElementById('recordCos').textContent===originalCos) {
+      document.getElementById('cos').value=newCos;
+      showPrivateRecord(updatedRecord);
+    }
+    setSyncStatus(`COS record ${newCos} updated.`, 'ready');
+  } catch (reason) {
+    console.error(reason);
+    error.textContent=reason.message || 'Unable to update the COS record.';
+    error.classList.add('show');
+  } finally {
+    button.disabled=false;
+    button.textContent='Save changes';
+  }
+}
+async function deleteAdminRecord(cos) {
+  const record=adminRecordsCache.get(cos);
+  if (!firebaseApi || !adminUser || !record) return;
+  if (!window.confirm(`Delete COS record ${cos} for ${record.name || 'this client'}? The client login account will remain.`)) return;
+  const error=document.getElementById('recordsError');
+  error.classList.remove('show');
+  try {
+    const batch=firebaseApi.writeBatch(firebaseApi.db);
+    batch.delete(firebaseApi.doc(firebaseApi.db, 'cosRecords', cos));
+    batch.delete(firebaseApi.doc(firebaseApi.db, 'publicCosStatus', cos));
+    if (record.ownerEmail) batch.delete(firebaseApi.doc(firebaseApi.db, 'ownerRecords', record.ownerEmail, 'records', cos));
+    await batch.commit();
+    adminRecordsCache.delete(cos);
+    renderAdminRecords();
+    if (document.getElementById('recordCos').textContent===cos) {
+      document.getElementById('cos').value='';
+      hidePrivateRecord();
+    }
+    setSyncStatus(`COS record ${cos} deleted.`, 'ready');
+  } catch (reason) {
+    console.error(reason);
+    error.textContent='Unable to delete the COS record.';
+    error.classList.add('show');
+  }
 }
 async function createClientAccount() {
   const login=document.getElementById('accountLogin').value.trim().toLowerCase();

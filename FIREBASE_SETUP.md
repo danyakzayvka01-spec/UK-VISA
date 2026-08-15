@@ -55,6 +55,12 @@ Record details and images are intentionally not embedded in the deployable sourc
 3. After authentication, Firestore permits access only to a `cosRecords` document whose `ownerEmail` matches that account.
 4. Searching for another client's COS number returns only the public registration status.
 
+## 6. Manage existing COS records
+
+After administrator sign-in, select **COS records** to open the private record list. The administrator can change the COS number, client name, or assigned login. These changes are committed together so the private record, public status, and owner index remain consistent.
+
+Deleting a COS record removes its private document, public status, and account link. It does not delete the Firebase Authentication login; remove an unused login separately from **Firebase Console > Authentication > Users** when appropriate.
+
 ## Data model and access
 
 - `publicCosStatus/{cos}` contains only the COS number and public status. Anyone may read one document when they know its exact COS number.
