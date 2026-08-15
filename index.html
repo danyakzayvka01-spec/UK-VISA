@@ -5,44 +5,115 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>COS Number Check</title>
   <style>
-    :root { --navy:#061a33; --royal:#0b3a82; --red:#c8102e; --cream:#f7f2e8; --gold:#c7a44b; --ink:#11243e; }
-    * { box-sizing:border-box; } body { margin:0; font-family:Inter,Arial,sans-serif; color:var(--ink); background:var(--cream); }
+    :root { --navy:#061a33; --royal:#0b3a82; --red:#c8102e; --cream:#f7f2e8; --gold:#c7a44b; --ink:#11243e; --green:#17643e; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:Inter,Arial,sans-serif; color:var(--ink); background:var(--cream); }
     .topline { height:7px; background:linear-gradient(90deg,var(--red) 0 25%,#fff 25% 31%,var(--royal) 31% 69%,#fff 69% 75%,var(--red) 75%); }
     header { background:var(--navy); color:#fff; padding:20px clamp(20px,6vw,90px); display:flex; justify-content:space-between; align-items:center; gap:20px; }
-    .brand { font-family:Georgia,serif; font-size:23px; letter-spacing:.4px; display:flex; align-items:center; gap:12px; }.crest { width:37px;height:37px;border:1px solid var(--gold);border-radius:50%;display:grid;place-items:center;color:var(--gold);font-size:19px; }
-    nav{display:flex;gap:10px;align-items:center}.btn{border:1px solid transparent;border-radius:3px;padding:11px 18px;background:var(--red);color:#fff;font-weight:700;cursor:pointer;font-size:14px}.btn.secondary{background:transparent;border-color:#91a3ba}.btn.gold{background:var(--gold);color:#07172e}.btn:hover{filter:brightness(1.1)}.profile{display:none;align-items:center;gap:10px;font-size:14px}.profile.show{display:flex}.profile-icon{width:36px;height:36px;display:grid;place-items:center;border-radius:50%;background:var(--gold);color:var(--navy);font-weight:800;font-size:15px}.profile small{display:block;color:#b7c7da;margin-top:2px}
-    main{min-height:calc(100vh - 84px);background:linear-gradient(90deg,rgba(6,26,51,.91),rgba(6,26,51,.66)),url('https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?auto=format&fit=crop&w=1800&q=80') center/cover; padding:clamp(55px,10vw,130px) clamp(20px,8vw,130px);}
-    .hero{max-width:750px;color:#fff}.eyebrow{font-size:12px;letter-spacing:2px;text-transform:uppercase;color:#f0d47c;font-weight:800}.hero h1{font-family:Georgia,serif;font-size:clamp(42px,6vw,72px);line-height:1.05;margin:14px 0}.hero p{font-size:18px;line-height:1.6;color:#e5ebf4;max-width:650px}
-    .lookup{margin-top:34px;background:#fff;padding:24px;border-left:5px solid var(--red);box-shadow:0 18px 45px #020b18a3;color:var(--ink);max-width:690px}.lookup label{font-weight:800;display:block;margin-bottom:10px}.fieldrow{display:flex;gap:10px}.fieldrow input{flex:1;border:1px solid #b9c5d2;border-radius:3px;padding:14px;font-size:16px;text-transform:uppercase}.note{font-size:12px;color:#617087;margin:12px 0 0}
-    .safety{background:#f1e4ba;border-top:1px solid #d4bd76;padding:13px clamp(20px,8vw,130px);font-size:13px}.result{display:none;max-width:690px;background:white;margin-top:22px;padding:24px;box-shadow:0 10px 30px #020b1870;color:var(--ink)}.result.show{display:block}.result-grid{display:grid;grid-template-columns:130px 1fr;gap:22px;align-items:start}.photo{width:130px;height:165px;border:1px solid #cbd4df;object-fit:cover;background:#edf2f7}.tag{background:#e2f1e7;color:#17643e;padding:6px 9px;font-weight:800;font-size:12px;border-radius:2px;display:inline-block}.details h2{margin:12px 0 4px;font-family:Georgia,serif}.details dl{display:grid;grid-template-columns:115px 1fr;gap:9px;margin:17px 0 0;font-size:14px}.details dt{color:#66758a}.details dd{margin:0;font-weight:700}.error{display:none;color:#a3152e;font-size:14px;margin-top:13px}.error.show{display:block}
-    dialog{border:0;padding:0;border-radius:5px;box-shadow:0 20px 70px #0009;width:min(520px,calc(100% - 32px));}dialog::backdrop{background:#061a33bb}.modal{padding:28px}.modal h2{font-family:Georgia,serif;margin:0 0 8px}.modal p{color:#526277;line-height:1.5}.modal label{display:block;font-size:13px;font-weight:800;margin-top:15px}.modal input{margin-top:6px;width:100%;padding:11px;border:1px solid #c6d0dd;border-radius:3px}.modal footer{display:flex;justify-content:flex-end;gap:10px;margin-top:24px}.adminbar{display:none;position:fixed;bottom:20px;right:20px;background:var(--navy);padding:12px;color:#fff;box-shadow:0 8px 30px #0007}.adminbar.show{display:flex;gap:12px;align-items:center}.upload-preview{display:none;width:70px;height:90px;object-fit:cover;margin-top:10px;border:1px solid #ccd}.upload-preview.show{display:block}
-    footer{background:#061a33;color:#b7c7da;padding:22px clamp(20px,6vw,90px);font-size:13px;display:flex;justify-content:space-between;gap:20px}@media(max-width:600px){header{align-items:flex-start;flex-direction:column}.fieldrow{flex-direction:column}.result-grid{grid-template-columns:1fr}.photo{width:105px;height:135px}footer{flex-direction:column}nav{width:100%;justify-content:flex-end}}
+    .brand { font-family:Georgia,serif; font-size:23px; letter-spacing:.4px; display:flex; align-items:center; gap:12px; }
+    .crest { width:37px; height:37px; border:1px solid var(--gold); border-radius:50%; display:grid; place-items:center; color:var(--gold); font-size:19px; }
+    nav { display:flex; gap:10px; align-items:center; }
+    .btn { border:1px solid transparent; border-radius:3px; padding:11px 18px; background:var(--red); color:#fff; font-weight:700; cursor:pointer; font-size:14px; }
+    .btn.secondary { background:transparent; border-color:#91a3ba; }
+    .btn.gold { background:var(--gold); color:#07172e; }
+    .btn:disabled { cursor:wait; opacity:.68; }
+    .btn:hover:not(:disabled) { filter:brightness(1.1); }
+    .profile { display:none; align-items:center; gap:10px; font-size:14px; }
+    .profile.show { display:flex; }
+    .profile-icon { width:36px; height:36px; display:grid; place-items:center; border-radius:50%; background:var(--gold); color:var(--navy); font-weight:800; font-size:15px; }
+    .profile small { display:block; color:#b7c7da; margin-top:2px; }
+    main { min-height:calc(100vh - 84px); background:linear-gradient(90deg,rgba(6,26,51,.91),rgba(6,26,51,.66)),url('https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?auto=format&fit=crop&w=1800&q=80') center/cover; padding:clamp(55px,10vw,130px) clamp(20px,8vw,130px); }
+    .hero { max-width:750px; color:#fff; }
+    .eyebrow { font-size:12px; letter-spacing:2px; text-transform:uppercase; color:#f0d47c; font-weight:800; }
+    .hero h1 { font-family:Georgia,serif; font-size:clamp(42px,6vw,72px); line-height:1.05; margin:14px 0; }
+    .hero p { font-size:18px; line-height:1.6; color:#e5ebf4; max-width:650px; }
+    .lookup { margin-top:34px; background:#fff; padding:24px; border-left:5px solid var(--red); box-shadow:0 18px 45px #020b18a3; color:var(--ink); max-width:690px; }
+    .lookup label { font-weight:800; display:block; margin-bottom:10px; }
+    .fieldrow { display:flex; gap:10px; }
+    .fieldrow input { flex:1; border:1px solid #b9c5d2; border-radius:3px; padding:14px; font-size:16px; text-transform:uppercase; }
+    .sync-status { font-size:12px; color:#617087; margin:12px 0 0; }
+    .sync-status.error { color:#a3152e; }
+    .sync-status.ready { color:var(--green); }
+    .result { display:none; max-width:690px; background:#fff; margin-top:22px; padding:24px; box-shadow:0 10px 30px #020b1870; color:var(--ink); }
+    .result.show { display:block; }
+    .result-grid { display:grid; grid-template-columns:130px 1fr; gap:22px; align-items:start; }
+    .result-grid.public { grid-template-columns:1fr; }
+    .photo { width:130px; height:165px; border:1px solid #cbd4df; object-fit:cover; background:#edf2f7; }
+    .tag { background:#e2f1e7; color:var(--green); padding:6px 9px; font-weight:800; font-size:12px; border-radius:2px; display:inline-block; }
+    .details h2 { margin:12px 0 4px; font-family:Georgia,serif; }
+    .details dl { display:grid; grid-template-columns:115px 1fr; gap:9px; margin:17px 0 0; font-size:14px; }
+    .details dt { color:#66758a; }
+    .details dd { margin:0; font-weight:700; }
+    .error { display:none; color:#a3152e; font-size:14px; margin-top:13px; }
+    .error.show { display:block; }
+    dialog { border:0; padding:0; border-radius:5px; box-shadow:0 20px 70px #0009; width:min(520px,calc(100% - 32px)); }
+    dialog::backdrop { background:#061a33bb; }
+    .modal { padding:28px; }
+    .modal h2 { font-family:Georgia,serif; margin:0 0 8px; }
+    .modal p { color:#526277; line-height:1.5; }
+    .modal label { display:block; font-size:13px; font-weight:800; margin-top:15px; }
+    .modal input { margin-top:6px; width:100%; padding:11px; border:1px solid #c6d0dd; border-radius:3px; }
+    .modal footer { display:flex; justify-content:flex-end; gap:10px; margin-top:24px; }
+    .adminbar { display:none; position:fixed; bottom:20px; right:20px; background:var(--navy); padding:12px; color:#fff; box-shadow:0 8px 30px #0007; }
+    .adminbar.show { display:flex; gap:12px; align-items:center; }
+    .upload-preview { display:none; width:70px; height:90px; object-fit:cover; margin-top:10px; border:1px solid #ccd; }
+    .upload-preview.show { display:block; }
+    footer { background:#061a33; color:#b7c7da; padding:22px clamp(20px,6vw,90px); font-size:13px; display:flex; justify-content:space-between; gap:20px; }
+    @media(max-width:600px) { header { align-items:flex-start; flex-direction:column; } .fieldrow { flex-direction:column; } .result-grid { grid-template-columns:1fr; } .photo { width:105px; height:135px; } footer { flex-direction:column; } nav { width:100%; justify-content:flex-end; } }
   </style>
 </head>
 <body>
-  <div class="topline"></div><header><div class="brand"><span class="crest">♔</span>COS Number Check</div><nav id="guestNav"><button class="btn secondary" onclick="openModal('login')">Sign in</button><button class="btn" onclick="openModal('register')">Register</button></nav><div id="profile" class="profile"><span class="profile-icon">T</span><span><strong>trust</strong><small>Administrator</small></span><button class="btn secondary" onclick="logout()">Sign out</button></div></header>
-  <main><section class="hero"><div class="eyebrow">City of London · Verification portal</div><h1>COS Number Check</h1><p>Enter your Certificate of Sponsorship number to view the application registration status.</p><div class="lookup"><label for="cos">COS number</label><div class="fieldrow"><input id="cos" placeholder="COS number" maxlength="10"><button class="btn" onclick="lookup()">Check status</button></div><div class="error" id="error">No record found.</div></div>
-    <article id="result" class="result" aria-live="polite"><div class="result-grid"><img class="photo" alt="Record photo" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=260&q=80"><div class="details"><span class="tag">REGISTERED</span><h2>Amelia Hart</h2><dl><dt>COS number</dt><dd>E4G1F8A9B2</dd><dt>Status</dt><dd>Registered</dd></dl></div></div></article>
-  </section></main><footer><span>© 2026 COS Number Check</span><span>Designed in London</span></footer>
+  <div class="topline"></div>
+  <header>
+    <div class="brand"><span class="crest">C</span>COS Number Check</div>
+    <nav id="guestNav">
+      <button class="btn secondary" onclick="openModal('login')">Sign in</button>
+      <button class="btn" onclick="openModal('register')">Register</button>
+    </nav>
+    <div id="profile" class="profile">
+      <span class="profile-icon">A</span>
+      <span><strong id="profileName">Administrator</strong><small>Administrator</small></span>
+      <button class="btn secondary" onclick="logout()">Sign out</button>
+    </div>
+  </header>
+  <main>
+    <section class="hero">
+      <div class="eyebrow">City of London - Verification portal</div>
+      <h1>COS Number Check</h1>
+      <p>Enter your Certificate of Sponsorship number to view the application registration status.</p>
+      <div class="lookup">
+        <label for="cos">COS number</label>
+        <div class="fieldrow"><input id="cos" placeholder="COS number" maxlength="10" autocomplete="off"><button class="btn" onclick="lookup()">Check status</button></div>
+        <div id="error" class="error" role="alert">No record found.</div>
+        <div id="syncStatus" class="sync-status" aria-live="polite">Connecting to record storage...</div>
+      </div>
+      <article id="result" class="result" aria-live="polite">
+        <div id="resultGrid" class="result-grid">
+          <img id="recordPhoto" class="photo" alt="Record photo" hidden>
+          <div class="details"><span id="recordTag" class="tag">REGISTERED</span><h2 id="recordName">Registration record</h2><dl><dt>COS number</dt><dd id="recordCos"></dd><dt>Status</dt><dd id="recordStatus">Registered</dd></dl></div>
+        </div>
+      </article>
+    </section>
+  </main>
+  <footer><span>Copyright 2026 COS Number Check</span><span>Designed in London</span></footer>
   <aside id="adminbar" class="adminbar"><span>Administrator mode</span><button class="btn gold" onclick="openModal('add')">+ Add COS</button><button class="btn secondary" onclick="logout()">Sign out</button></aside>
-  <dialog id="login"><form method="dialog" class="modal" onsubmit="return signIn()"><h2>Administrator sign in</h2><p>Enter your credentials to access the administrator panel.</p><label>Username<input id="loginName" required autocomplete="username"></label><label>Password<input id="loginPass" type="password" required autocomplete="current-password"></label><div id="loginError" class="error">Invalid credentials.</div><footer><button class="btn secondary" value="cancel">Cancel</button><button class="btn" value="default">Sign in</button></footer></form></dialog>
-  <dialog id="register"><form method="dialog" class="modal"><h2>Registration</h2><p>Registration is currently unavailable.</p><footer><button class="btn" value="close">Close</button></footer></form></dialog>
-  <dialog id="add"><form method="dialog" class="modal" onsubmit="addRecord(); return false;"><h2>Add record</h2><p>Records are stored in the current browser only. Do not add real passport photographs or identifiers.</p><label>COS number<input id="newCos" required maxlength="10"></label><label>Full name<input id="newName" required></label><label>Photo<input id="newPhoto" type="file" accept="image/*" onchange="preview(this)" required></label><img id="preview" class="upload-preview" alt="Preview"><footer><button class="btn secondary" type="button" onclick="document.getElementById('add').close()">Cancel</button><button id="saveRecord" class="btn" type="submit">Save record</button></footer></form></dialog>
-  <script>
-    const recordsKey='london-cos-records-v1', sessionKey='london-cos-admin-session-v1';
-    const defaultRecord={cos:'E4G1F8A9B2',name:'Amelia Hart',photo:'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=260&q=80'};
-    let records=[], pendingObjectUrl='';
-    try { records=JSON.parse(localStorage.getItem(recordsKey)||'[]'); if(!Array.isArray(records)) records=[]; } catch { records=[]; }
-    function openModal(id){document.getElementById(id).showModal()}
-    function renderRecord(record){const result=document.getElementById('result');result.querySelector('h2').textContent=record.name;result.querySelectorAll('dd')[0].textContent=record.cos;result.querySelector('.photo').src=record===defaultRecord?defaultRecord.photo:record.photo;}
-    function lookup(){const value=document.getElementById('cos').value.trim().toUpperCase(), result=document.getElementById('result'), error=document.getElementById('error');const record=value===defaultRecord.cos?defaultRecord:records.find(item=>item.cos===value);if(record){renderRecord(record);result.classList.add('show');error.classList.remove('show')}else{result.classList.remove('show');error.classList.add('show')}}
-    function setSignedIn(signedIn){document.getElementById('adminbar').classList.toggle('show',signedIn);document.getElementById('guestNav').style.display=signedIn?'none':'flex';document.getElementById('profile').classList.toggle('show',signedIn)}
-    function signIn(){const ok=document.getElementById('loginName').value==='trust'&&document.getElementById('loginPass').value==='1488';document.getElementById('loginError').classList.toggle('show',!ok);if(ok){localStorage.setItem(sessionKey,'true');document.getElementById('login').close();setSignedIn(true)}return false}
-    function logout(){localStorage.removeItem(sessionKey);setSignedIn(false)}
-    function preview(input){const file=input.files[0];if(!file)return;const image=document.getElementById('preview');if(pendingObjectUrl)URL.revokeObjectURL(pendingObjectUrl);pendingObjectUrl=URL.createObjectURL(file);image.src=pendingObjectUrl;image.classList.add('show')}
-    function preparePhoto(file){return new Promise((resolve,reject)=>{const sourceUrl=URL.createObjectURL(file), source=new Image();source.onload=()=>{const maxSide=640, scale=Math.min(1,maxSide/Math.max(source.width,source.height)), canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(source.width*scale));canvas.height=Math.max(1,Math.round(source.height*scale));canvas.getContext('2d').drawImage(source,0,0,canvas.width,canvas.height);URL.revokeObjectURL(sourceUrl);resolve(canvas.toDataURL('image/jpeg',.84))};source.onerror=()=>{URL.revokeObjectURL(sourceUrl);const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject();reader.readAsDataURL(file)};source.src=sourceUrl})}
-    async function addRecord(){const file=document.getElementById('newPhoto').files[0];if(!file)return;const button=document.getElementById('saveRecord');button.disabled=true;button.textContent='Saving…';let photo;try{photo=await preparePhoto(file)}catch(error){button.disabled=false;button.textContent='Save record';alert('The photo could not be processed.');return}const cos=document.getElementById('newCos').value.trim().toUpperCase(), name=document.getElementById('newName').value.trim(), record={cos,name,photo};records=[record,...records.filter(item=>item.cos!==cos)];try{localStorage.setItem(recordsKey,JSON.stringify(records))}catch(error){button.disabled=false;button.textContent='Save record';alert('The photo could not be saved. Try a smaller file.');return}document.getElementById('add').close();document.getElementById('newCos').value='';document.getElementById('newName').value='';document.getElementById('newPhoto').value='';document.getElementById('preview').removeAttribute('src');document.getElementById('preview').classList.remove('show');if(pendingObjectUrl)URL.revokeObjectURL(pendingObjectUrl);pendingObjectUrl='';button.disabled=false;button.textContent='Save record';document.getElementById('cos').value=cos;lookup()}
-    setSignedIn(localStorage.getItem(sessionKey)==='true');
-    document.getElementById('cos').addEventListener('keydown',e=>{if(e.key==='Enter')lookup()});
-  </script>
-</body></html>
+  <dialog id="login">
+    <form method="dialog" class="modal" onsubmit="signIn(); return false;">
+      <h2>Administrator sign in</h2><p>Use your Firebase administrator account.</p>
+      <label>Username or email<input id="loginName" required autocomplete="username"></label><label>Password<input id="loginPass" type="password" required autocomplete="current-password"></label>
+      <div id="loginError" class="error">Invalid administrator credentials.</div>
+      <footer><button class="btn secondary" value="cancel">Cancel</button><button class="btn" type="submit">Sign in</button></footer>
+    </form>
+  </dialog>
+  <dialog id="register"><form method="dialog" class="modal"><h2>Registration</h2><p>Registration is managed by the site administrator.</p><footer><button class="btn" value="close">Close</button></footer></form></dialog>
+  <dialog id="add">
+    <form method="dialog" class="modal" onsubmit="addRecord(); return false;">
+      <h2>Add record</h2><p>Records are shared through Firebase. A small test avatar is stored with the private record; do not add real passport photographs or identifiers.</p>
+      <label>COS number<input id="newCos" required maxlength="10" autocomplete="off"></label><label>Full name<input id="newName" required></label><label>Photo<input id="newPhoto" type="file" accept="image/*" onchange="preview(this)" required></label>
+      <img id="preview" class="upload-preview" alt="Preview"><footer><button class="btn secondary" type="button" onclick="document.getElementById('add').close()">Cancel</button><button id="saveRecord" class="btn" type="submit">Save record</button></footer>
+    </form>
+  </dialog>
+  <script src="./firebase-config.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
