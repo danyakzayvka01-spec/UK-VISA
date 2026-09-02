@@ -1,6 +1,6 @@
 const FIREBASE_VERSION = '12.17.1';
 const firebaseConfig = window.COS_FIREBASE_CONFIG || {};
-const adminEmail = firebaseConfig.authDomain ? `trust@${firebaseConfig.authDomain}` : '';
+const adminEmail = "kybanichbek1488@gmail.com"
 let firebaseApi = null;
 let adminUser = null;
 let pendingObjectUrl = '';
