@@ -4,7 +4,7 @@ service cloud.firestore {
   match /databases/{database}/documents {
     function isAdmin() {
       return request.auth != null
-        && request.auth.token.email == 'kybanichbek1488@gmail.com';
+        && request.auth.token.email == 'trust@uk-visa-c64c8.firebaseapp.com';
     }
 
     function isRecordOwner() {
